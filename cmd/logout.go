@@ -4,7 +4,7 @@ Copyright © 2025 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	auth "github.com/prattiikk/cofiles/cmd/utils"
+	auth "github.com/prattiikk/cofiles/cmd/utils/auth"
 
 	"github.com/spf13/cobra"
 )

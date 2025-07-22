@@ -6,7 +6,7 @@ package cmd
 import (
 	"fmt"
 
-	auth "github.com/prattiikk/cofiles/cmd/utils"
+	auth "github.com/prattiikk/cofiles/cmd/utils/auth"
 	"github.com/spf13/cobra"
 )
 
