@@ -8,7 +8,7 @@ import (
 	"io"
 	"net/http"
 
-	auth "github.com/prattiikk/cofiles/cmd/utils/auth"
+	"github.com/prattiikk/cofiles/internal/auth"
 	"github.com/spf13/cobra"
 )
 

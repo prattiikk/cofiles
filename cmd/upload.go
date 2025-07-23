@@ -8,7 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	upload "github.com/prattiikk/cofiles/cmd/utils/upload"
+	storage "github.com/prattiikk/cofiles/internal/storage"
 )
 
 // uploadCmd represents the upload command
@@ -28,7 +28,7 @@ to quickly create a Cobra application.`,
 		}
 		filePath := args[0]
 
-		err := upload.UploadFile(filePath)
+		err := storage.UploadFile(filePath)
 
 		if err != nil {
 			fmt.Printf("Error uploading file: %v\n", err)

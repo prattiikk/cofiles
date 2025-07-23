@@ -1,10 +1,10 @@
-package upload
+package storage
 
 import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/prattiikk/cofiles/cmd/utils/auth"
+	"github.com/prattiikk/cofiles/internal/auth"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -16,12 +16,12 @@ import (
 type UploadResponse struct {
 	Message string `json:"message"`
 	File    struct {
-		ID        string `json:"id"`
-		Name      string `json:"name"`
-		URL       string `json:"url"`
-		CreatedAt string `json:"createdAt"`
+		ID        string  `json:"id"`
+		Name      string  `json:"name"`
+		URL       string  `json:"url"`
+		CreatedAt string  `json:"createdAt"`
 		RoomID    *string `json:"roomId"`
-		UserID    string `json:"userId"`
+		UserID    string  `json:"userId"`
 	} `json:"file"`
 }
 

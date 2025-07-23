@@ -1,4 +1,4 @@
-package download
+package storage
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/prattiikk/cofiles/cmd/utils/auth"
+	"github.com/prattiikk/cofiles/internal/auth"
 )
 
 // DownloadFile downloads a file from the given server URL using the filename

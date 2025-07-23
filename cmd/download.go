@@ -9,8 +9,8 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/prattiikk/cofiles/cmd/utils/auth"
-	"github.com/prattiikk/cofiles/cmd/utils/download"
+	"github.com/prattiikk/cofiles/internal/auth"
+	"github.com/prattiikk/cofiles/internal/storage"
 	"github.com/spf13/cobra"
 )
 
@@ -102,7 +102,7 @@ to quickly create a Cobra application.`,
 
 		filename := args[0]
 		fmt.Printf("downloading %s", filename)
-		errfile := download.DownloadFile(filename)
+		errfile := storage.DownloadFile(filename)
 		if errfile != nil {
 			fmt.Println("❌ Error:", err)
 		}
