@@ -4,12 +4,8 @@ Copyright © 2025 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
-
-	"github.com/prattiikk/cofiles/internal/auth"
+	"github.com/prattiikk/cofiles/internal/cloud"
 	"github.com/spf13/cobra"
 )
 
@@ -25,80 +21,25 @@ This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 
-		// get the jwt header from config file
-		header, err := auth.GetAuthHeader()
-		if err != nil || header == "" {
-			fmt.Println("Authorization failed:", err)
-			return
-		}
-
-		// get the backend server url from the config
-		config := auth.LoadConfig()
-
-		// generate a endpoint to hit
-		url := config.Server + "/core/files"
-
-		// create a request object of type GET with the built url
-		req, err := http.NewRequest("GET", url, nil)
+		files, err := cloud.GetUserFiles()
 		if err != nil {
-			fmt.Println("Failed to create request:", err)
+			fmt.Println("❌ Failed to fetch file list:", err)
 			return
 		}
 
-		// attach the jwt header to the reqest object
-		req.Header.Set("Authorization", header)
-
-		// create a http client
-		client := &http.Client{}
-
-		// make the reqest and get the response
-		resp, err := client.Do(req)
-		if err != nil {
-			fmt.Println("HTTP request failed:", err)
+		if len(files) == 0 {
+			fmt.Println("📁 No files found in your cloud storage.")
 			return
 		}
 
-		defer resp.Body.Close()
-
-		// read the response body
-		bodyBytes, err := io.ReadAll(resp.Body)
-
-		if err != nil {
-			fmt.Println("Failed to read response body:", err)
-			return
+		// Print the files
+		fmt.Printf("\n📂 Your Files:\n\n")
+		fmt.Printf("%-30s %-20s %-10s %-25s\n", "Name", "Type", "Size (KB)", "Created At")
+		fmt.Println("--------------------------------------------------------------------------------------")
+		for _, file := range files {
+			fmt.Printf("%-20s %-30s %-10.2f %-30s\n",
+				file.Name, file.MimeType, float64(file.Size)/1024, file.CreatedAt)
 		}
-
-		// Structs to match the JSON response
-		type File struct {
-			Name      string `json:"name"`
-			CreatedAt string `json:"createdAt"`
-		}
-
-		type FileListResponse struct {
-			Files []File `json:"files"`
-		}
-
-		var fileList FileListResponse
-
-		// parse the body which is in json and store it in fileList obejct
-		err = json.Unmarshal(bodyBytes, &fileList)
-		if err != nil {
-			fmt.Println("Failed to parse JSON response:", err)
-			fmt.Println("Raw response:", string(bodyBytes))
-			return
-		}
-
-		if len(fileList.Files) == 0 {
-			fmt.Println("No personal files found.")
-			return
-		}
-
-		// fmt.Println("Your Files:")
-		// print the list of files
-		for _, file := range fileList.Files {
-			fmt.Printf(" - %s\t - %s\n", file.Name, file.CreatedAt)
-		}
-
 	},
 }
 

@@ -11,8 +11,8 @@ import (
 )
 
 // authStatusCmd represents the authStatus command
-var authStatusCmd = &cobra.Command{
-	Use:   "authstatus",
+var status = &cobra.Command{
+	Use:   "status",
 	Short: "Check authentication status",
 	Long:  `Displays whether the user is authenticated and prints the stored JWT if available.`,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -32,5 +32,5 @@ var authStatusCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(authStatusCmd)
+	rootCmd.AddCommand(status)
 }

@@ -23,29 +23,24 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("test called")
 
 		header, err := auth.GetAuthHeader()
 		if err != nil || header == "" {
 			fmt.Println("error reading header")
 		} else {
-			fmt.Println("header:", header)
+			fmt.Println("header present \n")
 		}
 
 		config := auth.LoadConfig()
-		fmt.Println("config:")
-		fmt.Println("JWT:", config.JWT)
-		fmt.Println("Server:", config.Server)
 
-		// Make HTTP GET request
-		url := config.Server + "/core/protected" // Example: call /health endpoint
+		url := config.Server + "/cloud/protected"
+
 		req, err := http.NewRequest("GET", url, nil)
 		if err != nil {
 			fmt.Println("Failed to create request:", err)
 			return
 		}
 
-		// Attach auth header if available
 		if header != "" {
 			req.Header.Set("Authorization", header)
 		}

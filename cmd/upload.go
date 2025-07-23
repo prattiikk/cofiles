@@ -6,9 +6,8 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/prattiikk/cofiles/internal/cloud"
 	"github.com/spf13/cobra"
-
-	storage "github.com/prattiikk/cofiles/internal/storage"
 )
 
 // uploadCmd represents the upload command
@@ -28,13 +27,13 @@ to quickly create a Cobra application.`,
 		}
 		filePath := args[0]
 
-		err := storage.UploadFile(filePath)
+		err := cloud.UploadFile(filePath)
 
 		if err != nil {
 			fmt.Printf("Error uploading file: %v\n", err)
 			return
 		}
-		fmt.Println("File uploaded successfully!")
+		fmt.Println("✅ File uploaded successfully!")
 	},
 }
 
