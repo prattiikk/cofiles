@@ -24,14 +24,20 @@ type FileListResponse struct {
 
 // downloadCmd represents the download command
 var downloadCmd = &cobra.Command{
-	Use:   "download",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+	Use:   "download <filename>",
+	Short: "Download a specific file from your cloud storage",
+	Long: `Download a file stored in your authenticated cloud storage.
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+You need to specify the exact filename of the file you want to download. 
+If the file is found, it will be downloaded using its ID. 
+In case the file is not found, a list of all available files will be displayed.
+
+Usage:
+  cofiles download <filename>
+
+Example:
+  cofiles download notes.txt
+`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) == 0 {
 			fmt.Println("❌ Please specify the filename to download.")

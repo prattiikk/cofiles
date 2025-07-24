@@ -12,15 +12,20 @@ import (
 // lsCmd represents the ls command
 var lsCmd = &cobra.Command{
 	Use:   "ls",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+	Short: "List all your uploaded files in the cloud",
+	Long: `Displays a formatted list of all the files stored in your Cofiles cloud storage.
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+The list includes details such as:
+- File name
+- MIME type
+- Size (in KB)
+- Upload timestamp
+
+Example:
+  cofiles ls
+
+Use this command to quickly view and verify all your stored documents and assets.`,
 	Run: func(cmd *cobra.Command, args []string) {
-
 		files, err := cloud.GetUserFiles()
 		if err != nil {
 			fmt.Println("❌ Failed to fetch file list:", err)

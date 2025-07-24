@@ -9,15 +9,18 @@ import (
 )
 
 // loginCmd represents the login command
+// loginCmd represents the login command
 var loginCmd = &cobra.Command{
 	Use:   "login",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+	Short: "Authenticate your CLI with your cloud account",
+	Long: `Log in to your Cofiles account using your browser.
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+This command opens a browser window with authentication options (e.g., Google or GitHub).
+Once authenticated, your session token will be securely saved and used for future CLI interactions.
+
+Example:
+  cofiles login
+`,
 	Run: func(cmd *cobra.Command, args []string) {
 		auth.Authenticate("http://localhost:3000")
 	},

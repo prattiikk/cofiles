@@ -13,13 +13,19 @@ import (
 // uploadCmd represents the upload command
 var uploadCmd = &cobra.Command{
 	Use:   "upload",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+	Short: "Upload a file to your cloud storage",
+	Long: `Upload a local file to your cloud storage.
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+Provide the full or relative path to the file you wish to upload.
+
+Examples:
+  cofile upload notes.txt
+  cofile upload ./projects/report.pdf
+
+Notes:
+- Ensure you're authenticated before running this command.
+- You’ll receive a confirmation message on successful upload.
+`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) < 1 {
 			fmt.Println("Please provide the path to the file to upload.")
