@@ -22,7 +22,7 @@ Example:
   cofiles login
 `,
 	Run: func(cmd *cobra.Command, args []string) {
-		auth.Authenticate("http://localhost:3000")
+		auth.Authenticate()
 	},
 }
 

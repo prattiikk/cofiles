@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -18,24 +19,29 @@ type Config struct {
 	Server string `json:"server,omitempty"`
 }
 
-// AuthResponse from server
+// start flow endpoint response
 type AuthResponse struct {
-	URL  string `json:"url"`
-	Code string `json:"code"`
+	DeviceCode      string `json:"device_code"`
+	UserCode        string `json:"user_code"`
+	VerificationURL string `json:"verification_url"`
+	ExpiresIn       int    `json:"expires_in"`
+	Interval        int    `json:"interval"`
 }
 
-// TokenResponse from server
-type TokenResponse struct {
-	Token string `json:"token"`
+// TokenResponse from polling endpoint server
+type PollingResponse struct {
+	AccessToken string `json:"access_token"`
+	TokenType   string `json:"token_type"`
+	ExpiresIn   int    `json:"expires_in"`
 }
 
 const (
-	defaultServer = "http://localhost:3000"
-	pollInterval  = 2 * time.Second
+	defaultServer = "http://ec2-43-205-235-230.ap-south-1.compute.amazonaws.com"
+	pollInterval  = 5 * time.Second
 	pollTimeout   = 5 * time.Minute
 )
 
-// getConfigPath returns path to config file
+// getConfigPath returns path to config file stored at respective locations based on OS
 func getConfigPath() string {
 	home, _ := os.UserHomeDir()
 
@@ -48,6 +54,7 @@ func getConfigPath() string {
 		return filepath.Join(home, ".config", "cofiles", "config.json")
 	}
 }
+
 
 // LoadConfig loads configuration from file
 func LoadConfig() *Config {
@@ -81,11 +88,13 @@ func SaveConfig(config *Config) error {
 	return os.WriteFile(configPath, data, 0600)
 }
 
+
 // IsAuthenticated checks if user has a token
 func IsAuthenticated() bool {
 	config := LoadConfig()
 	return config.JWT != ""
 }
+
 
 // GetJWT returns the stored token
 func GetJWT() (string, error) {
@@ -130,8 +139,10 @@ func openBrowser(url string) error {
 }
 
 // requestAuthURL gets authentication URL from server
-func requestAuthURL(serverURL string) (*AuthResponse, error) {
-	resp, err := http.Post(serverURL+"/auth/request-url", "application/json", nil)
+func startAuthFlow(serverURL string) (*AuthResponse, error) {
+	fmt.Println("inside startAuthFlow")
+	resp, err := http.Post(serverURL+"/cli/device/start", "application/json", nil)
+	fmt.Printf("Received response: %v, error: %v\n", resp, err)
 	if err != nil {
 		return nil, fmt.Errorf("failed to request auth URL: %w", err)
 	}
@@ -147,13 +158,29 @@ func requestAuthURL(serverURL string) (*AuthResponse, error) {
 }
 
 // pollForToken waits for user to complete auth and gets token
-func pollForToken(serverURL, code string) (*TokenResponse, error) {
+func pollForToken(serverURL, deviceCode string) (*PollingResponse, error) {
 	client := &http.Client{}
-	pollURL := fmt.Sprintf("%s/auth/token/%s", serverURL, code)
+	pollURL := fmt.Sprintf("%s/cli/device/token", serverURL)
 	deadline := time.Now().Add(pollTimeout)
 
 	for time.Now().Before(deadline) {
-		resp, err := client.Get(pollURL)
+
+		// Build request body
+		payload := map[string]string{
+			"device_code": deviceCode,
+		}
+
+		jsonBody, _ := json.Marshal(payload)
+
+		req, err := http.NewRequest("POST", pollURL, bytes.NewBuffer(jsonBody))
+		if err != nil {
+			time.Sleep(pollInterval)
+			continue
+		}
+
+		req.Header.Set("Content-Type", "application/json")
+
+		resp, err := client.Do(req)
 		if err != nil {
 			time.Sleep(pollInterval)
 			continue
@@ -167,21 +194,24 @@ func pollForToken(serverURL, code string) (*TokenResponse, error) {
 			continue
 		}
 
+		// SUCCESS → Token received
 		if resp.StatusCode == http.StatusOK {
-			var tokenResp TokenResponse
-			if json.Unmarshal(body, &tokenResp) == nil && tokenResp.Token != "" {
+			var tokenResp PollingResponse
+			if json.Unmarshal(body, &tokenResp) == nil && tokenResp.AccessToken != "" {
 				return &tokenResp, nil
 			}
 		}
 
-		if resp.StatusCode == http.StatusAccepted {
+		// Authorization pending (your backend returns 428)
+		if resp.StatusCode == 428 {
 			fmt.Print(".")
 			time.Sleep(pollInterval)
 			continue
 		}
 
-		if resp.StatusCode == http.StatusNotFound {
-			return nil, fmt.Errorf("authentication code expired")
+		// Expired or invalid
+		if resp.StatusCode == http.StatusBadRequest {
+			return nil, fmt.Errorf("authentication failed or expired")
 		}
 
 		time.Sleep(pollInterval)
@@ -191,32 +221,32 @@ func pollForToken(serverURL, code string) (*TokenResponse, error) {
 }
 
 // Authenticate performs the complete authentication flow
-func Authenticate(serverURL string) error {
+func Authenticate() error {
+
 	config := LoadConfig()
-	if serverURL == "" {
-		serverURL = config.Server
-	}
+	serverURL := defaultServer
 
-	fmt.Println("🔐 Starting authentication...")
+	fmt.Println("🔐 Starting aaaauthentication...")
 
-	// Get auth URL
-	authResp, err := requestAuthURL(serverURL)
+	// start Auth flow
+	fmt.Println("starting auth flow")
+	authResp, err := startAuthFlow(serverURL)
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("🌐 Opening browser: %s\n", authResp.URL)
+	fmt.Printf("🌐 Opening browser: %s\n", authResp.VerificationURL)
 
 	// Open browser
-	if err := openBrowser(authResp.URL); err != nil {
+	if err := openBrowser(authResp.VerificationURL); err != nil {
 		fmt.Printf("❌ Failed to open browser: %v\n", err)
-		fmt.Printf("Please open: %s\n", authResp.URL)
+		fmt.Printf("Please open: %s\n", authResp.VerificationURL)
 	}
 
 	fmt.Print("⏳ Waiting for authentication")
 
 	// Wait for token
-	tokenResp, err := pollForToken(serverURL, authResp.Code)
+	tokenResp, err := pollForToken(serverURL, authResp.DeviceCode)
 	if err != nil {
 		fmt.Println()
 		return err
@@ -225,8 +255,10 @@ func Authenticate(serverURL string) error {
 	fmt.Println("\n✅ Authentication successful!")
 
 	// Save token
-	config.JWT = tokenResp.Token
+	config.JWT = tokenResp.AccessToken
 	config.Server = serverURL
+	fmt.Println(config);
+	
 
 	if err := SaveConfig(config); err != nil {
 		return fmt.Errorf("failed to save config: %w", err)

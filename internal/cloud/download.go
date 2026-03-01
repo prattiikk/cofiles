@@ -21,8 +21,12 @@ type DownloadResponse struct {
 
 // DownloadFile downloads a file from the server using the file ID
 func DownloadFile(fileID string) error {
-	config := auth.LoadConfig()
-	downloadMetaURL := fmt.Sprintf("%s/cloud/download/%s", config.Server, fileID)
+	// config := auth.LoadConfig()
+	// downloadMetaURL := fmt.Sprintf("%s/cloud/download/%s", config.Server, fileID)
+	downloadMetaURL := fmt.Sprintf(
+		"http://ec2-43-205-235-230.ap-south-1.compute.amazonaws.com/files/download?fileId=%s",
+		fileID,
+	)
 
 	req, err := http.NewRequest("GET", downloadMetaURL, nil)
 	if err != nil {

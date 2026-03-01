@@ -1,7 +1,6 @@
 package cloud
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/prattiikk/cofiles/internal/auth"
@@ -15,25 +14,21 @@ import (
 
 // UploadResponse represents the server response structure
 type UploadResponse struct {
-	Success bool   `json:"success"`
-	Message string `json:"message"`
-	File    struct {
-		ID         string `json:"id"`
-		Name       string `json:"name"`
-		Size       int64  `json:"size"`
-		MimeType   string `json:"mimeType"`
-		UploadedAt string `json:"uploadedAt"`
-	} `json:"file"`
+	ID         string `json:"id"`
+	Name       string `json:"name"`
+	Size       int64  `json:"size"`
+	MimeType   string `json:"mimeType"`
+	CreatedAt  string `json:"createdAt"`
 }
 
 // ErrorResponse represents error response structure
 type ErrorResponse struct {
-	Success bool   `json:"success"`
-	Error   string `json:"error"`
+	Error string `json:"error"`
 }
 
 func UploadFile(filePath string) error {
-	// Check if file exists and get file info
+
+	// Validate file
 	fileInfo, err := os.Stat(filePath)
 	if err != nil {
 		return fmt.Errorf("could not stat file: %w", err)
@@ -42,50 +37,56 @@ func UploadFile(filePath string) error {
 		return fmt.Errorf("path is a directory, not a file")
 	}
 
-	// Open the file
 	file, err := os.Open(filePath)
 	if err != nil {
 		return fmt.Errorf("could not open file: %w", err)
 	}
 	defer file.Close()
 
-	// Determine MIME type
+	// Detect MIME type
 	ext := filepath.Ext(filePath)
 	mimeType := mime.TypeByExtension(ext)
 	if mimeType == "" {
 		mimeType = "application/octet-stream"
 	}
 
-	// Prepare multipart body
-	body := &bytes.Buffer{}
-	writer := multipart.NewWriter(body)
-	fileName := filepath.Base(filePath)
+	// Streaming pipe
+	pr, pw := io.Pipe()
+	writer := multipart.NewWriter(pw)
 
-	part, err := writer.CreateFormFile("file", fileName)
-	if err != nil {
-		return fmt.Errorf("could not create form file: %w", err)
-	}
-	if _, err := io.Copy(part, file); err != nil {
-		return fmt.Errorf("could not copy file data: %w", err)
-	}
-	if err := writer.Close(); err != nil {
-		return fmt.Errorf("could not close writer: %w", err)
-	}
+	// Start writing multipart body in separate goroutine
+	go func() {
+		defer pw.Close()
+		defer writer.Close()
 
-	// Load auth and prepare request
+		part, err := writer.CreateFormFile("file", filepath.Base(filePath))
+		if err != nil {
+			pw.CloseWithError(err)
+			return
+		}
+
+		if _, err := io.Copy(part, file); err != nil {
+			pw.CloseWithError(err)
+			return
+		}
+	}()
+
+	// Load auth header
 	authHeader, err := auth.GetAuthHeader()
-	if err != nil {
+	if err != nil || authHeader == "" {
 		return fmt.Errorf("authorization failed: %w", err)
 	}
-	uploadURL := "http://localhost:3000/cloud/upload"
-	req, err := http.NewRequest("POST", uploadURL, body)
+
+	// Prepare request
+	uploadURL := "http://ec2-43-205-235-230.ap-south-1.compute.amazonaws.com/files/upload"
+	req, err := http.NewRequest("POST", uploadURL, pr)
 	if err != nil {
 		return fmt.Errorf("could not create request: %w", err)
 	}
+
 	req.Header.Set("Authorization", authHeader)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 
-	// Send the request
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -93,12 +94,12 @@ func UploadFile(filePath string) error {
 	}
 	defer resp.Body.Close()
 
-	// Read and handle response
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return fmt.Errorf("could not read response: %w", err)
+		return fmt.Errorf("could not read response body: %w", err)
 	}
 
+	// Handle success
 	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 		var uploadResp UploadResponse
 		if err := json.Unmarshal(respBody, &uploadResp); err != nil {
@@ -107,10 +108,11 @@ func UploadFile(filePath string) error {
 		return nil
 	}
 
-	// Handle error response
+	// Handle error
 	var errorResp ErrorResponse
-	if err := json.Unmarshal(respBody, &errorResp); err != nil {
-		return fmt.Errorf("upload failed with status %d: %s", resp.StatusCode, string(respBody))
+	if err := json.Unmarshal(respBody, &errorResp); err == nil && errorResp.Error != "" {
+		return fmt.Errorf("upload failed (%d): %s", resp.StatusCode, errorResp.Error)
 	}
-	return fmt.Errorf("upload failed with status %d: %s", resp.StatusCode, errorResp.Error)
+
+	return fmt.Errorf("upload failed (%d): %s", resp.StatusCode, string(respBody))
 }

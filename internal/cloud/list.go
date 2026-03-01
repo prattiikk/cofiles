@@ -34,7 +34,8 @@ func GetUserFiles() ([]File, error) {
 		return nil, fmt.Errorf("server not configured. Please run 'cofiles login'")
 	}
 
-	url := config.Server + "/cloud/files"
+	// url := config.Server + "/files"
+	url := "http://ec2-43-205-235-230.ap-south-1.compute.amazonaws.com/files"
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
@@ -57,14 +58,21 @@ func GetUserFiles() ([]File, error) {
 		return nil, fmt.Errorf("server returned status %d: %s", resp.StatusCode, string(bodyBytes))
 	}
 
-	var fileList FileListResponse
-	if err := json.Unmarshal(bodyBytes, &fileList); err != nil {
+	// var fileList FileListResponse
+	// if err := json.Unmarshal(bodyBytes, &fileList); err != nil {
+	// 	return nil, fmt.Errorf("failed to parse response: %w", err)
+	// }
+
+	// if !fileList.Success {
+	// 	return nil, fmt.Errorf("server returned success=false")
+	// }
+	// return fileList.Files, nil
+	var files []File
+	if err := json.Unmarshal(bodyBytes, &files); err != nil {
 		return nil, fmt.Errorf("failed to parse response: %w", err)
 	}
 
-	if !fileList.Success {
-		return nil, fmt.Errorf("server returned success=false")
-	}
+	return files, nil
 
-	return fileList.Files, nil
+	
 }

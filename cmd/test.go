@@ -33,7 +33,8 @@ to quickly create a Cobra application.`,
 
 		config := auth.LoadConfig()
 
-		url := config.Server + "/cloud/protected"
+		// url := config.Server + "/cloud/protected"
+		url := config.Server + "/private/test"
 
 		req, err := http.NewRequest("GET", url, nil)
 		if err != nil {

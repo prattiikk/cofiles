@@ -10,8 +10,13 @@ import (
 
 // DeleteFile deletes a file from the server using the file ID
 func DeleteFile(fileID string) error {
-	config := auth.LoadConfig()
-	deleteURL := fmt.Sprintf("%s/cloud/delete/%s", config.Server, fileID)
+	// config := auth.LoadConfig()
+	// deleteURL := fmt.Sprintf("%s/cloud/delete/%s", config.Server, fileID)
+
+	deleteURL := fmt.Sprintf(
+		"http://ec2-43-205-235-230.ap-south-1.compute.amazonaws.com/files/delete?fileId=%s",
+		fileID,
+	)
 
 	req, err := http.NewRequest(http.MethodDelete, deleteURL, nil)
 	if err != nil {
@@ -34,7 +39,7 @@ func DeleteFile(fileID string) error {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return fmt.Errorf("server returned status %d: failed to delete file", resp.StatusCode)
 	}
 
